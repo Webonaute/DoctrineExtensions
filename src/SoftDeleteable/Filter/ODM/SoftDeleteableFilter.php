@@ -20,9 +20,10 @@ class SoftDeleteableFilter extends BsonFilter
     public function addFilterCriteria(ClassMetadata $targetEntity): array
     {
         $class = $targetEntity->getName();
-        if (array_key_exists($class, $this->disabled) && true === $this->disabled[$class]) {
+        if (isset($this->disabled[$class]) && true === $this->disabled[$class]) {
             return [];
-        } elseif (array_key_exists($targetEntity->rootDocumentName, $this->disabled) && true === $this->disabled[$targetEntity->rootDocumentName]) {
+        }
+        if (isset($this->disabled[$targetEntity->rootDocumentName]) && true === $this->disabled[$targetEntity->rootDocumentName]) {
             return [];
         }
 
@@ -51,8 +52,7 @@ class SoftDeleteableFilter extends BsonFilter
     protected function getListener()
     {
         if (null === $this->listener) {
-            $em = $this->getDocumentManager();
-            $evm = $em->getEventManager();
+            $evm = $this->getDocumentManager()->getEventManager();
 
             foreach ($evm->getListeners() as $listeners) {
                 foreach ($listeners as $listener) {
@@ -75,9 +75,10 @@ class SoftDeleteableFilter extends BsonFilter
     protected function getDocumentManager()
     {
         if (null === $this->documentManager) {
-            $refl = new \ReflectionProperty('Doctrine\ODM\MongoDB\Query\Filter\BsonFilter', 'dm');
-            $refl->setAccessible(true);
-            $this->documentManager = $refl->getValue($this);
+            $getManager = \Closure::bind(function (BsonFilter $filter) {
+                return $filter->dm;
+            }, null, 'Doctrine\ODM\MongoDB\Query\Filter\BsonFilter');
+            $this->documentManager = $getManager($this);
         }
 
         return $this->documentManager;

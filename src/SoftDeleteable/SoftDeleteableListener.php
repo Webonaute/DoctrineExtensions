@@ -49,6 +49,7 @@ class SoftDeleteableListener extends MappedEventSubscriber
     public function onFlush(EventArgs $args)
     {
         $ea = $this->getEventAdapter($args);
+        /** @var \Doctrine\ORM\EntityManagerInterface $om */
         $om = $ea->getObjectManager();
         $uow = $om->getUnitOfWork();
         $evm = $om->getEventManager();
@@ -63,7 +64,7 @@ class SoftDeleteableListener extends MappedEventSubscriber
                 $oldValue = $reflProp->getValue($object);
                 $date = $ea->getDateValue($meta, $config['fieldName']);
 
-                // Remove `$oldValue instanceof \DateTime` check when PHP version is bumped to >=5.5
+                // TODO: Remove `$oldValue instanceof \DateTime` check when PHP version is bumped to >=5.5
                 if (isset($config['hardDelete']) && $config['hardDelete'] && ($oldValue instanceof \DateTime || $oldValue instanceof \DateTimeInterface) && $oldValue <= $date) {
                     continue; // want to hard delete
                 }

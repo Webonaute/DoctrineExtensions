@@ -29,7 +29,7 @@ class SoftDeleteableFilter extends SQLFilter
     protected $entityManager;
 
     /**
-     * @var string[bool]
+     * @var bool[]
      */
     protected $disabled = [];
 
@@ -41,9 +41,10 @@ class SoftDeleteableFilter extends SQLFilter
     public function addFilterConstraint(ClassMetadata $targetEntity, $targetTableAlias)
     {
         $class = $targetEntity->getName();
-        if (array_key_exists($class, $this->disabled) && true === $this->disabled[$class]) {
+        if (isset($this->disabled[$class]) && true === $this->disabled[$class]) {
             return '';
-        } elseif (array_key_exists($targetEntity->rootEntityName, $this->disabled) && true === $this->disabled[$targetEntity->rootEntityName]) {
+        }
+        if (isset($this->disabled[$targetEntity->rootEntityName]) && true === $this->disabled[$targetEntity->rootEntityName]) {
             return '';
         }
 
@@ -53,8 +54,7 @@ class SoftDeleteableFilter extends SQLFilter
             return '';
         }
 
-        $conn = $this->getEntityManager()->getConnection();
-        $platform = $conn->getDatabasePlatform();
+        $platform = $this->getConnection()->getDatabasePlatform();
         $column = $targetEntity->getQuotedColumnName($config['fieldName'], $platform);
 
         $addCondSql = $platform->getIsNullExpression($targetTableAlias.'.'.$column);
@@ -93,8 +93,7 @@ class SoftDeleteableFilter extends SQLFilter
     protected function getListener()
     {
         if (null === $this->listener) {
-            $em = $this->getEntityManager();
-            $evm = $em->getEventManager();
+            $evm = $this->getEntityManager()->getEventManager();
 
             foreach ($evm->getListeners() as $listeners) {
                 foreach ($listeners as $listener) {
@@ -120,9 +119,10 @@ class SoftDeleteableFilter extends SQLFilter
     protected function getEntityManager()
     {
         if (null === $this->entityManager) {
-            $refl = new \ReflectionProperty('Doctrine\ORM\Query\Filter\SQLFilter', 'em');
-            $refl->setAccessible(true);
-            $this->entityManager = $refl->getValue($this);
+            $getManager = \Closure::bind(function (SQLFilter $filter) {
+                return $filter->em;
+            }, null, 'Doctrine\ORM\Query\Filter\SQLFilter');
+            $this->entityManager = $getManager($this);
         }
 
         return $this->entityManager;
